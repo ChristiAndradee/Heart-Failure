@@ -8,29 +8,22 @@ from dados import (PreparadorDados, persistir_modelo, CONTINUAS, BINARIAS,
 pd.set_option('display.width', 160)
 pd.set_option('display.max_columns', 30)
 
-
 def _carregar(nome):
     return load(open(os.path.join(PASTA_MODELOS, f'Coracao_{nome}.pkl'), 'rb'))
 
 
 def descrever(df, modelo):
-    """Descreve cada grupo em unidades reais. Os centroides das continuas sao
-    DESNORMALIZADOS (inverse_transform) para a escala original; as binarias do
-    centroide ja sao a PROPORCAO de pacientes com valor 1 no grupo. Acrescenta o
-    tamanho do grupo e a taxa de mortalidade (DEATH_EVENT) para caracterizacao."""
     normalizador = _carregar('normalizador')
     colunas = _carregar('colunas')
 
     centroides = pd.DataFrame(modelo.cluster_centers_, columns=colunas)
 
-    # desnormaliza a parte continua de volta para a escala original
     continuas_reais = pd.DataFrame(
         normalizador.inverse_transform(centroides[CONTINUAS]), columns=CONTINUAS)
-    binarias_prop = centroides[BINARIAS].abs()  # proporcao de 1s no grupo (abs evita -0.00)
+    binarias_prop = centroides[BINARIAS].abs()
 
     perfil = continuas_reais.join(binarias_prop).round(2)
 
-    # caracterizacao adicional: tamanho e mortalidade observada por grupo
     prep = PreparadorDados()
     X = prep.preparar(df)
     rotulos = modelo.predict(X)
@@ -39,8 +32,6 @@ def descrever(df, modelo):
                                .groupby(rotulos).mean().values * 100).round(1)
     perfil.index.name = 'grupo'
 
-    # converte as binarias para rotulo semantico + proporcao (ex: "M (73%)")
-    # sem alterar as colunas continuas nem as metricas de caracterizacao
     perfil_exibicao = perfil.copy()
     for col in BINARIAS:
         perfil_exibicao[col] = perfil[col].apply(
@@ -49,8 +40,7 @@ def descrever(df, modelo):
 
     print('\n=== Perfil dos grupos (centroides em unidades reais) ===')
     print(perfil_exibicao.to_string())
-    return perfil  # retorna o perfil numerico original para uso programatico
-
+    return perfil
 
 if __name__ == "__main__":
     prep = PreparadorDados()

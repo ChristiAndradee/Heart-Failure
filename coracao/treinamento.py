@@ -8,11 +8,7 @@ from sklearn.metrics import silhouette_score
 
 from dados import persistir_modelo, PASTA_PLOTS
 
-
 class TreinadorCluster:
-    """Treina o metaestimador de agrupamento KMeans. Escolhe o numero de grupos
-    pelo metodo do cotovelo (distancia maxima a reta que liga o primeiro ao ultimo
-    ponto da curva de distorcoes), confirmando com a silhueta."""
 
     def __init__(self, semente=42, k_max=15, n_init=10):
         self.semente = semente
@@ -27,7 +23,6 @@ class TreinadorCluster:
             distorcoes.append(
                 sum(np.min(cdist(X, km.cluster_centers_, 'euclidean'), axis=1)) / X.shape[0])
 
-        # joelho: ponto de maior distancia a reta (x0,y0)-(xn,yn)
         x0, y0, xn, yn = K[0], distorcoes[0], K[-1], distorcoes[-1]
         dists = []
         for k, y in zip(K, distorcoes):

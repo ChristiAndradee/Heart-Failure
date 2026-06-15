@@ -11,17 +11,11 @@ PASTA_PLOTS = os.path.join(RAIZ, 'plots')
 
 ARQUIVO = 'heart_failure_clinical_records_dataset.csv'
 
-# Atributos CONTINUOS -> precisam de normalizacao (escalas muito diferentes:
-# platelets ~10^5, creatinine_phosphokinase ate ~7800, vs ejection_fraction 14-80).
 CONTINUAS = ['age', 'creatinine_phosphokinase', 'ejection_fraction',
              'platelets', 'serum_creatinine', 'serum_sodium']
 
-# Atributos BINARIOS (0/1) -> NAO sao normalizados (ver nota no README):
-# ja estao em [0,1] e representam categorias, nao magnitudes.
 BINARIAS = ['anaemia', 'diabetes', 'high_blood_pressure', 'sex', 'smoking']
 
-# Excluidos do agrupamento: desfecho clinico e tempo de acompanhamento nao sao
-# conhecidos para um paciente novo na admissao (usamos DEATH_EVENT so para caracterizar).
 EXCLUIR = ['time', 'DEATH_EVENT']
 
 # Mapeamento semantico das variaveis binarias (0/1 -> rotulo legivel).
@@ -34,12 +28,7 @@ MAPA_BINARIAS = {
     'smoking':            {0: 'Nao', 1: 'Sim'},
 }
 
-
 class PreparadorDados:
-    """Pre-processamento para o agrupamento: normaliza as variaveis CONTINUAS com
-    MinMaxScaler (-> [0,1]) e mantem as BINARIAS em 0/1, garantindo que todos os
-    atributos fiquem na mesma faixa e contribuam de forma comparavel na distancia
-    euclidiana do KMeans. O normalizador e persistido para uso na inferencia."""
 
     def __init__(self):
         self.caminho = os.path.join(PASTA_DATASETS, ARQUIVO)
@@ -52,16 +41,13 @@ class PreparadorDados:
         return df
 
     def preparar(self, df):
-        # 1) normaliza SO as continuas e salva o normalizador
         normalizador = MinMaxScaler().fit(df[CONTINUAS])
         persistir_modelo(normalizador, 'normalizador')
         continuas_norm = pd.DataFrame(
             normalizador.transform(df[CONTINUAS]), columns=CONTINUAS, index=df.index)
 
-        # 2) binarias permanecem em 0/1 (sem escalonamento)
         binarias = df[BINARIAS].astype(float)
 
-        # 3) junta tudo (mesma ordem de colunas usada depois na inferencia)
         X = continuas_norm.join(binarias)[self.colunas]
         persistir_modelo(self.colunas, 'colunas')
 
